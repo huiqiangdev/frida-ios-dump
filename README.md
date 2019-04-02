@@ -1,5 +1,6 @@
 **python 3 please checkout 3.x branch**
-
+# new add
+dlopen all frameworks
 # frida-ios-dump
 Pull a decrypted IPA from a jailbroken device
 
