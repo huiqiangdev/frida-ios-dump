@@ -8,6 +8,7 @@ var O_CREAT = 512;
 var SEEK_SET = 0;
 var SEEK_CUR = 1;
 var SEEK_END = 2;
+var RTLD_LAZY = 0x1;
 
 function allocStr(str) {
     return Memory.allocUtf8String(str);
@@ -137,6 +138,8 @@ lseek = getExportFunction("f", "lseek", "int64", ["int", "int64", "int"]);
 close = getExportFunction("f", "close", "int", ["int"]);
 remove = getExportFunction("f", "remove", "int", ["pointer"]);
 access = getExportFunction("f", "access", "int", ["pointer", "int"]);
+dl_open = getExportFunction("f","dlopen","pointer",["pointer","int"]);
+
 
 function getDocumentDir() {
     var NSDocumentDirectory = 9;
@@ -151,6 +154,25 @@ function open(pathname, flags, mode) {
     }
     return wrapper_open(pathname, flags, mode);
 }
+function openAllFrameworks() {
+     var path = ObjC.classes.NSBundle.mainBundle().privateFrameworksPath().toString();
+     var fm = ObjC.classes.NSFileManager.defaultManager();
+     const nsArray = fm.contentsOfDirectoryAtPath_error_(path, NULL);
+     if (!nsArray){
+         console.log("no frameworks need to open");
+          return;
+     }
+     for (var i = 0; i < nsArray.count(); i++) {
+        var frameworkName = nsArray.objectAtIndex_(i).toString();
+        var excuteName = frameworkName.replace('.framework','');
+        var frameworkPath = path + '/' + frameworkName + '/' + excuteName;
+        if (typeof frameworkPath == "string") {
+         frameworkPath = allocStr(frameworkPath);
+        }
+        dl_open(frameworkPath,RTLD_LAZY);
+     }
+}
+
 
 var modules = null;
 function getAllAppModules() {
@@ -316,6 +338,7 @@ function dumpModule(name) {
 
 function handleMessage(message) {
     //start dump
+    openAllFrameworks();
     modules = getAllAppModules();
     for (var i = 0; i  < modules.length; i++) {
         console.log("start dump " + modules[i].path);
